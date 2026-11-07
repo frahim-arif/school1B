@@ -19,6 +19,11 @@ const studentSchema = new mongoose.Schema(
       trim: true,
     },
 
+    houseName: {
+  type: String,
+  default: "",
+  trim: true,
+},
     lastName: {
       type: String,
       default: "",
