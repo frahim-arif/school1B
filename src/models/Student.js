@@ -80,6 +80,18 @@ const studentSchema = new mongoose.Schema(
       required: true,
     },
 
+    username: {
+  type: String,
+  unique: true,
+  sparse: true,
+  lowercase: true,
+  trim: true,
+},
+
+password: {
+  type: String,
+  select: false,
+},
     bloodGroup: {
       type: String,
       default: "",

@@ -1,17 +1,68 @@
+
+import bcrypt from "bcryptjs";
 import Student from "../models/Student.js";
 
 // Add Student
 export const createStudent = async (req, res) => {
   try {
-    const student = await Student.create(req.body);
+    const {
+      username,
+      password,
+      ...studentData
+    } = req.body;
 
-    res.status(201).json({
+    if (!username || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Student username and password are required",
+      });
+    }
+
+    const cleanUsername = username.trim().toLowerCase();
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 6 characters",
+      });
+    }
+
+    const existingStudent = await Student.findOne({
+      username: cleanUsername,
+    });
+
+    if (existingStudent) {
+      return res.status(409).json({
+        success: false,
+        message: "This username is already taken",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const student = await Student.create({
+      ...studentData,
+      username: cleanUsername,
+      password: hashedPassword,
+    });
+
+    const studentResponse = student.toObject();
+    delete studentResponse.password;
+
+    return res.status(201).json({
       success: true,
       message: "Student Added Successfully",
-      student,
+      student: studentResponse,
     });
   } catch (err) {
-    res.status(500).json({
+    if (err.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "Admission number or username already exists",
+      });
+    }
+
+    return res.status(500).json({
       success: false,
       message: err.message,
     });
@@ -21,14 +72,10 @@ export const createStudent = async (req, res) => {
 // All Students
 export const getStudents = async (req, res) => {
   try {
-    const students = await Student.find().sort({
-      createdAt: -1,
-    });
+    const students = await Student.find()
+      .sort({ createdAt: -1 });
 
-    res.json({
-      success: true,
-      students,
-    });
+    res.json({ success: true, students });
   } catch (err) {
     res.status(500).json({
       success: false,
@@ -36,6 +83,7 @@ export const getStudents = async (req, res) => {
     });
   }
 };
+
 // Get Single Student
 export const getStudentById = async (req, res) => {
   try {
@@ -48,10 +96,7 @@ export const getStudentById = async (req, res) => {
       });
     }
 
-    res.json({
-      success: true,
-      student,
-    });
+    res.json({ success: true, student });
   } catch (err) {
     res.status(500).json({
       success: false,
@@ -63,9 +108,12 @@ export const getStudentById = async (req, res) => {
 // Update Student
 export const updateStudent = async (req, res) => {
   try {
+    // Normal student edit must never save a plaintext password.
+    const { password, ...updateData } = req.body;
+
     const student = await Student.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateData,
       {
         new: true,
         runValidators: true,

@@ -54,6 +54,7 @@ import certificateSettingRoutes from "./routes/certificateSetting.routes.js";
 import certificateTemplateRoutes from "./routes/certificateTemplate.routes.js";
 import onlineAdmissionRoutes from "./routes/onlineAdmission.routes.js";
 import admissionSettingRoutes from "./routes/admissionSetting.routes.js";
+import studentAuthRoutes from "./routes/studentAuth.routes.js";
 
 const app = express();
 // --------------------
@@ -157,6 +158,7 @@ app.use("/api/certificate-templates", certificateTemplateRoutes);
 app.use("/api/online-admission", onlineAdmissionRoutes);
 app.use("/api/admission-settings", admissionSettingRoutes);
 app.use("/api/visitors", visitorRoutes);
+app.use("/api/student-auth", studentAuthRoutes);
 
 
 
