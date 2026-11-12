@@ -1,4 +1,4 @@
-
+import Student from "../models/Student.js";
 import express from "express";
 import mongoose from "mongoose";
 import Fee from "../models/Fee.js";
@@ -177,6 +177,102 @@ function csvCell(value) {
   const text = String(value ?? "");
   return `"${text.replace(/"/g, '""')}"`;
 }
+
+
+// GET /api/fees/students/search
+router.get("/students/search", async (req, res) => {
+  try {
+    const search = String(
+      req.query.search || req.query.name || ""
+    ).trim();
+
+    const className = String(req.query.className || "").trim();
+    const section = String(req.query.section || "").trim();
+    const rollNo = String(req.query.rollNo || "").trim();
+
+    const filter = { status: "Active" };
+
+    if (className) {
+      filter.className = new RegExp(escapeRegex(className), "i");
+    }
+
+    if (section) {
+      filter.section = new RegExp(escapeRegex(section), "i");
+    }
+
+    if (rollNo) {
+      if (!/^\d+$/.test(rollNo)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid roll number.",
+        });
+      }
+
+      filter.rollNo = Number(rollNo);
+    }
+
+    if (search) {
+      const regex = new RegExp(escapeRegex(search), "i");
+
+      filter.$or = [
+        { firstName: regex },
+        { houseName: regex },
+        { lastName: regex },
+        { admissionNo: regex },
+      ];
+
+      if (/^\d+$/.test(search)) {
+        filter.$or.push({ rollNo: Number(search) });
+      }
+    }
+
+    if (!search && !className && !section && !rollNo) {
+      return res.json({
+        success: true,
+        count: 0,
+        students: [],
+      });
+    }
+
+    const students = await Student.find(filter)
+      .select(
+        "_id admissionNo rollNo firstName houseName lastName className section session phone status"
+      )
+      .sort({ className: 1, section: 1, rollNo: 1 })
+      .limit(30)
+      .lean();
+
+    const result = students.map((item) => {
+      const fullName = [
+        item.firstName,
+        item.houseName,
+        item.lastName,
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+      return {
+        ...item,
+        name: fullName,
+        student: fullName,
+      };
+    });
+
+    return res.json({
+      success: true,
+      count: result.length,
+      students: result,
+    });
+  } catch (error) {
+    console.error("Student fee search error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to search students.",
+    });
+  }
+});
+
 
 // GET /api/fees
 router.get("/", async (req, res) => {
